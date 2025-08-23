@@ -41,6 +41,11 @@ SELECT
     ,COUNT(DISTINCT order_items.product_id) AS distinct_products_sold
     ,SUM(order_items.price) AS total_value_sold
     ,SUM(order_items.freight_value) AS total_freight_value
+    ,MAX(order_items.price) AS most_expensive_product_sold
+    ,MIN(order_items.price) AS least_expensive_product_sold
+    ,AVG(order_items.price) AS avg_ticket
+    ,SUM(order_items.price)/COUNT(DISTINCT order_items.order_id) AS avg_sale_per_order
+    ,AVG(DISTINCT order_items.price) AS avg_store_items_price
 FROM
     order_items
 GROUP BY

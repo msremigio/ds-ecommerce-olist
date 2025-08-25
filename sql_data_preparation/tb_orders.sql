@@ -5,7 +5,14 @@ SELECT
 FROM
     orders;
 
--- Get number of 'delivered' orders by customer ---> Not even a single customer has more than one 'delivered' order
+-- Get MIN and MAX 'order_approved_at' of 'delivered' orders
+SELECT
+    MIN(orders.order_approved_at) AS first_order_approved_at
+    ,MAX(orders.order_approved_at) AS last_order_approved_at
+FROM
+    orders;
+
+-- Get number of 'delivered' orders by customer ---> Must relate to 'customer_unique_id' to see how many orders per customer
 SELECT 
     orders.customer_id
     ,COUNT(orders.order_id) AS delivered_order_count
@@ -48,7 +55,8 @@ SELECT
     ,orders.order_purchase_timestamp
     ,COALESCE(orders.order_approved_at, orders.order_purchase_timestamp) AS order_approved_at
     ,orders.order_delivered_carrier_date
-    ,orders.order_delivered_customer_date  
+    ,orders.order_delivered_customer_date
+    ,orders.order_estimated_delivery_date  
 FROM
     orders
 WHERE

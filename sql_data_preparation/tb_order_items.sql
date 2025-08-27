@@ -52,3 +52,18 @@ GROUP BY
     order_items.seller_id
 ORDER BY
     total_itens_sold DESC;
+
+
+-- Get average 'freight_value' per seller state
+SELECT
+    sellers.seller_id
+    ,sellers.seller_state
+    ,AVG(order_items.freight_value) AS avg_freight_value_per_state
+FROM
+    order_items
+LEFT JOIN sellers ON (order_items.seller_id = sellers.seller_id)
+GROUP BY
+    sellers.seller_id
+    ,sellers.seller_state
+ORDER BY
+    avg_freight_value_per_state DESC;

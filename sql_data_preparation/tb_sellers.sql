@@ -22,3 +22,14 @@ GROUP BY
     sellers.seller_state
 ORDER BY
     sellers_count DESC;
+
+-- Get sellers states and leads won
+SELECT
+    sellers.seller_id
+    ,MAX(sellers.seller_state) AS seller_state
+    ,COUNT(leads_closed.mql_id) AS leads_won_count
+FROM
+    sellers
+LEFT JOIN leads_closed ON (sellers.seller_id = leads_closed.seller_id) AND leads_closed.won_date BETWEEN '2017-01-01' AND '2017-07-01'
+GROUP BY
+    sellers.seller_id;

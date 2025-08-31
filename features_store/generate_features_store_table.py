@@ -1,7 +1,21 @@
 from os import path
 from argparse import ArgumentParser
 from sqlalchemy import create_engine, text, exc
-from datetime import datetime
+import logging
+from sys import stdout
+
+# Configure logging pattern
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+logger.propagate = False
+
+console = logging.StreamHandler(stdout)
+console.setLevel(logging.INFO)
+
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+console.setFormatter(formatter)
+
+logger.addHandler(console)
 
 # Parse the reference date for the cohort to be extracted and add it to the features store table
 parser = ArgumentParser(prog='generate_features_store_table.py',
@@ -17,7 +31,6 @@ TB_NAME = args.table
 CURRENT_DIR = path.dirname(__file__)
 BASE_DIR = path.dirname(CURRENT_DIR)
 DATA_DIR = path.join(BASE_DIR, 'data')
-
 
 # Helper function: Get the SQL query
 def import_sql_query(query_path: str) -> str:
@@ -44,14 +57,14 @@ sql_cohort = sql.format(date=DT_REF)
 with connect_db('olist.sqlite') as conn:
     try:
         conn.execute(text(f"CREATE TABLE {TB_NAME} AS\n {sql_cohort}"))
-        print(f"{datetime.now().replace(microsecond=0)} | CREATE TABLE {TB_NAME} successfully executed")
+        logger.info(f"CREATE TABLE {TB_NAME} successfully executed")
     except exc.OperationalError as e:
-        print(f"{datetime.now().replace(microsecond=0)} | CREATE TABLE failed: {e.orig}")
+        logger.warning(f"CREATE TABLE failed: {e.orig}")
         try:
-            print(f"{datetime.now().replace(microsecond=0)} | Trying to INSERT INTO TABLE {TB_NAME} instead...")
+            logger.info(f"Trying to INSERT INTO TABLE {TB_NAME} instead...")
             conn.execute(text(f"DELETE FROM {TB_NAME} WHERE obs_window_start_date = {DT_REF}"))
             conn.execute(text(f"INSERT INTO {TB_NAME}\n {sql_cohort}"))
-            print(f"{datetime.now().replace(microsecond=0)} | INSERT INTO TABLE {TB_NAME} successfully executed. Cohort starting at: {DT_REF}")
+            logger.info(f"INSERT INTO TABLE {TB_NAME} successfully executed. Cohort starting at: {DT_REF}")
         except Exception as e:
-            print(f"{datetime.now().replace(microsecond=0)} | Execution failed: {e.__cause__}")
+            logger.exception(f"Execution failed: {e.__cause__}")
         

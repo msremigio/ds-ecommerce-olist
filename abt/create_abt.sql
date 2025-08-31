@@ -1,59 +1,3 @@
--- Check orders volume per YYYY-MM
-SELECT
-    STRFTIME('%Y-%m', orders.order_approved_at) AS order_approved_at_month
-    ,COUNT(orders.order_id) AS delivered_order_count
-FROM
-    orders
-WHERE
-    orders.order_status = 'delivered'
-GROUP BY
-    order_approved_at_month;
-
--- Check the YYYY-MM of the 'delivered' orders that don't have 'order_aproved_at' value
-SELECT
-    orders.order_purchase_timestamp
-    ,orders.order_approved_at
-FROM
-    orders
-WHERE
-    orders.order_status = 'delivered'
-    AND orders.order_approved_at IS NULL;
-
-/*
-    CONSIDERING WE HAVE A LOW VOLUME IN THE FIRST 3 MONTHS OF DATA (2016-09 TO 2016-12),
-    LET'S DEFINE OUR FIRST COHORT/OBSERVATION WINDOW STARTING AT 2017-01-01.
-
-    AS WE'RE ANALYSING E-COMMERCE DATA AND THE DATA VOLUME IS NOT BIG, I BELIEVE A 6 MONTH
-    OBSERVATION WINDOW + A MONTHLY COHORT IS REASONABLE TO START WITH.
-
-    ** POSSIBLE MATURED COHORTS **
-    1. 2017-01-01 -> 2017-06-30
-    2. 2017-02-01 -> 2017-07-31
-    3. 2017-03-01 -> 2017-08-31
-    4. 2017-04-01 -> 2017-09-30
-    5. 2017-05-01 -> 2017-10-31
-    6. 2017-06-01 -> 2017-11-30
-    7. 2017-07-01 -> 2017-12-31
-    8. 2017-08-01 -> 2018-01-31 
-    9. 2017-09-01 -> 2018-02-28
-    10. 2017-10-01 -> 2018-03-31
-    11. 2017-11-01 -> 2018-04-30
-    12. 2017-12-01 -> 2018-05-31
-    13. 2018-01-01 -> 2018-06-30
-    14. 2018-02-01 -> 2018-07-31
-    15. 2018-03-01 -> 2018-08-31 
-*/
--- Observation windows
-SELECT
-    DATE(MIN(orders.order_approved_at), 'start of month') AS obs_window_start_date
-    ,DATE(MIN(orders.order_approved_at), 'start of month', '+6 month', '-1 day') AS obs_window_end_date
-FROM
-    orders
-WHERE
-    orders.order_status = 'delivered'
-    AND orders.order_approved_at BETWEEN '2017-01-01' AND '2017-07-01'    
-
--- Sellers features store for the first cohort 
 WITH
 obs_window_orders_raw_table AS(
 SELECT
@@ -78,7 +22,7 @@ LEFT JOIN order_items ON (orders.order_id = order_items.order_id)
 LEFT JOIN order_reviews ON (orders.order_id = order_reviews.order_id)
 WHERE
     orders.order_status = 'delivered'
-    AND orders.order_approved_at BETWEEN '2017-01-01' AND '2017-07-01'
+    AND orders.order_approved_at BETWEEN '{date}' AND DATE('{date}', '+6 month')
 ),
 obs_window_aggr_sellers AS(
 SELECT
@@ -96,16 +40,16 @@ SELECT
     ,AVG(DISTINCT price) AS avg_product_price
     ,MIN(order_approved_at) AS first_sale_date
     ,MAX(order_approved_at) AS last_sale_date
-    ,(julianday('2017-07-01', '-1 day') - julianday(DATE(MIN(order_approved_at)))) AS days_since_first_sale
-    ,MIN(CEIL((julianday('2017-07-01 00:00:00', '-1 second') - julianday(MIN(order_approved_at)))/30.0), 6.0) AS months_since_first_sale
-    ,(julianday('2017-07-01', '-1 day') - julianday(DATE(MAX(order_approved_at)))) AS days_since_last_sale
-    ,MIN(CEIL((julianday('2017-07-01 00:00:00', '-1 second') - julianday(MAX(order_approved_at)))/30.0), 6.0) AS months_since_last_sale
+    ,(julianday('{date}', '+6 month', '-1 day') - julianday(DATE(MIN(order_approved_at)))) AS days_since_first_sale
+    ,MIN(CEIL((julianday('{date}', '+6 month', '-1 second') - julianday(MIN(order_approved_at)))/30.0), 6.0) AS months_since_first_sale
+    ,(julianday('{date}', '+6 month', '-1 day') - julianday(DATE(MAX(order_approved_at)))) AS days_since_last_sale
+    ,MIN(CEIL((julianday('{date}', '+6 month', '-1 second') - julianday(MAX(order_approved_at)))/30.0), 6.0) AS months_since_last_sale
     ,(julianday(DATE(MAX(order_approved_at))) - julianday(DATE(MIN(order_approved_at)))) AS days_between_first_last_sale
-    ,CEIL((julianday(DATE(MAX(order_approved_at))) - julianday(DATE(MIN(order_approved_at))))/30.0) AS months_between_first_last_sale
+    ,CEIL((julianday(MAX(order_approved_at)) - julianday(MIN(order_approved_at)))/30.0) AS months_between_first_last_sale
     ,COUNT(DISTINCT STRFTIME('%m', order_approved_at)) AS distinct_month_sales_count
-    ,SUM(price)/MIN(CEIL((julianday('2017-07-01 00:00:00', '-1 second') - julianday(MIN(order_approved_at)))/30.0), 6.0) AS avg_monthly_revenue
+    ,SUM(price)/MIN(CEIL((julianday('{date}', '+6 month', '-1 second') - julianday(MIN(order_approved_at)))/30.0), 6.0) AS avg_monthly_revenue
     ,SUM(price)/COUNT(DISTINCT STRFTIME('%m', order_approved_at)) AS avg_monthly_sales_revenue
-    ,COUNT(DISTINCT STRFTIME('%m', order_approved_at))/MIN(CEIL((julianday('2017-07-01 00:00:00', '-1 second') - julianday(MIN(order_approved_at)))/30.0), 6.0) AS mothly_sales_proportion
+    ,COUNT(DISTINCT STRFTIME('%m', order_approved_at))/MIN(CEIL((julianday('{date}', '+6 month', '-1 second') - julianday(MIN(order_approved_at)))/30.0), 6.0) AS mothly_sales_proportion
     ,AVG(review_score) AS avg_review_score
     ,AVG(freight_value) AS avg_freight_price
     ,(COUNT(DISTINCT customer_unique_id)/1.0)/COUNT(order_id) AS distinct_customers_sales_proportion
@@ -198,7 +142,7 @@ LEFT JOIN order_items ON products.product_id = order_items.product_id
 LEFT JOIN orders ON (order_items.order_id = orders.order_id)
 WHERE
     orders.order_status = 'delivered'
-    AND orders.order_approved_at BETWEEN '2017-01-01' AND '2017-07-01'
+    AND orders.order_approved_at BETWEEN '{date}' AND DATE('{date}', '+6 month')
 GROUP BY
     order_items.seller_id    
 ),
@@ -209,7 +153,7 @@ SELECT
     ,COUNT(leads_closed.mql_id) AS leads_won_count
 FROM
     sellers
-LEFT JOIN leads_closed ON (sellers.seller_id = leads_closed.seller_id) AND leads_closed.won_date BETWEEN '2017-01-01' AND '2017-07-01'
+LEFT JOIN leads_closed ON (sellers.seller_id = leads_closed.seller_id) AND leads_closed.won_date BETWEEN '{date}' AND DATE('{date}', '+6 month')
 GROUP BY
     sellers.seller_id   
 ),
@@ -226,7 +170,7 @@ LEFT JOIN order_items ON (orders.order_id = order_items.order_id)
 LEFT JOIN order_reviews ON (orders.order_id = order_reviews.order_id)
 WHERE
     orders.order_status = 'delivered'
-    AND orders.order_approved_at BETWEEN '2017-01-01' AND '2017-07-01'
+    AND orders.order_approved_at BETWEEN '{date}' AND DATE('{date}', '+6 month')
 GROUP BY
     order_items.seller_id
     ,orders.order_id
@@ -240,10 +184,20 @@ FROM
     obs_window_sellers_oders_deliveries
 GROUP BY
     seller_id    
+),
+obs_window_flag_model AS(
+SELECT DISTINCT
+    order_items.seller_id
+FROM
+    orders
+LEFT JOIN order_items ON (orders.order_id = order_items.order_id)
+WHERE
+    orders.order_status = 'delivered'
+    AND orders.order_approved_at BETWEEN DATE('{date}', '+6 month') AND DATE('{date}', '+6 month', '+3 month')   
 )
 SELECT
-    '2017-01-01' AS obs_window_start_date
-    ,DATE('2017-01-01', '+6 month', '-1 day') As obs_window_end_date
+    '{date}' AS obs_window_start_date
+    ,DATE('{date}', '+6 month', '-1 day') As obs_window_end_date
     ,obs_window_aggr_sellers.*
     ,obs_window_sellers_product_category.cat_bed_bath_table
     ,obs_window_sellers_product_category.cat_health_beauty 
@@ -321,80 +275,10 @@ SELECT
     ,obs_window_sellers_states_and_leads.leads_won_count
     ,obs_window_aggr_sellers_delayed_orders.delayed_orders_count
     ,obs_window_aggr_sellers_delayed_orders.delayed_orders_proportion
+    ,(CASE WHEN obs_window_flag_model.seller_id IS NULL THEN 1 ELSE 0 END) AS flag_model
 FROM
     obs_window_aggr_sellers
 LEFT JOIN obs_window_sellers_product_category ON obs_window_aggr_sellers.seller_id = obs_window_sellers_product_category.seller_id
 LEFT JOIN obs_window_sellers_states_and_leads ON obs_window_aggr_sellers.seller_id = obs_window_sellers_states_and_leads.seller_id
-LEFT JOIN obs_window_aggr_sellers_delayed_orders ON obs_window_aggr_sellers.seller_id = obs_window_aggr_sellers_delayed_orders.seller_id;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+LEFT JOIN obs_window_aggr_sellers_delayed_orders ON obs_window_aggr_sellers.seller_id = obs_window_aggr_sellers_delayed_orders.seller_id
+LEFT JOIN obs_window_flag_model ON obs_window_aggr_sellers.seller_id = obs_window_flag_model.seller_id;

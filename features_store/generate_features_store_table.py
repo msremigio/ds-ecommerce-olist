@@ -42,6 +42,7 @@ def import_sql_query(query_path: str) -> str:
 # Helper function: Connect to the database
 def connect_db(db: str) -> object:
     engine = create_engine(f"sqlite:///{path.join(DATA_DIR, db)}")
+    
     return engine
 
 # Get query content
@@ -64,7 +65,7 @@ with engine.begin() as conn:
         logger.warning(f"CREATE TABLE failed: {e.orig}")
         try:
             logger.info(f"Trying to INSERT INTO TABLE {TB_NAME} instead...")
-            conn.execute(text(f"DELETE FROM {TB_NAME} WHERE obs_window_start_date = '{DT_REF}'"))
+            conn.execute(text(f"DELETE FROM {TB_NAME} WHERE obs_window_start_date = '{DT_REF}';"))
             conn.execute(text(f"INSERT INTO {TB_NAME}\n {sql_cohort}"))
             logger.info(f"INSERT INTO TABLE {TB_NAME} successfully executed. Cohort starting at: {DT_REF}")
         except Exception as e:

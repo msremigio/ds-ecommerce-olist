@@ -176,4 +176,7 @@ cython_debug/
 
 # Extra files
 data/olist.sqlite
-sql_data_preparation/tb_teste
+sql_data_preparation/tb_teste.sql
+features_store/test.sql
+abt/features_n_flag.sql
+abt/test.sql

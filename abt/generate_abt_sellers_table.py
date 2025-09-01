@@ -64,7 +64,7 @@ with engine.begin() as conn:
             logger.info(f"Trying to DROP TABLE {TB_NAME} before a new recreation attempt...")
             conn.execute(text(f"DROP TABLE {TB_NAME};"))
             logger.info(f"TABLE {TB_NAME} successfully dropped...")
-            logger.info(f"Attempting to CREATE TABLE {TB_NAME}")
+            logger.info(f"New attempt on CREATE TABLE {TB_NAME}")
             conn.execute(text(f"CREATE TABLE {TB_NAME} AS\n {sql_abt}"))
             logger.info(f"CREATE TABLE {TB_NAME} successfully executed")
         except Exception as e:

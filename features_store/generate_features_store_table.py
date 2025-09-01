@@ -59,6 +59,7 @@ engine = connect_db('olist.sqlite')
 
 with engine.begin() as conn:
     try:
+        logger.info(f"Starting cohort extraction into {TB_NAME} table")
         conn.execute(text(f"CREATE TABLE {TB_NAME} AS\n {sql_cohort}"))
         logger.info(f"CREATE TABLE {TB_NAME} successfully executed")
     except exc.OperationalError as e:

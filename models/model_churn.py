@@ -50,5 +50,5 @@ def db_to_df(db: str, query: str) -> pd.DataFrame:
     logger.info(f"DataFrame with ABT info from the database was successfully created.")
     return df_from_db
 
-
+# Raw DataFrame
 df_raw = db_to_df(db_name, read_query(query_file))

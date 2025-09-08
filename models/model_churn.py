@@ -6,9 +6,8 @@ import logging
 from sys import stdout
 
 # Logging pattern configuration
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
-logger.propagate = False
+logger = logging.getLogger('example')
+logger.setLevel(logging.DEBUG)
 
 console = logging.StreamHandler(stdout)
 console.setLevel(logging.INFO)

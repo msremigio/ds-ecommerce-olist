@@ -1,9 +1,10 @@
 from os import path
 from argparse import ArgumentParser
 from sqlalchemy import create_engine
-import pandas as pd
 import logging
 from sys import stdout
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
 
 # Logging pattern configuration
 logger = logging.getLogger('example')
@@ -51,3 +52,20 @@ def db_to_df(db: str, query: str) -> pd.DataFrame:
 
 # Raw DataFrame
 df_raw = db_to_df(db_name, read_query(query_file))
+
+# Filtered DataFrame
+disposable_columns = ['obs_window_start_date', 'obs_window_end_date', 'seller_id', 'first_sale_date', 'last_sale_date']
+df_filtered = df_raw.drop(columns=disposable_columns, inplace=False)
+
+# One hot encoding categorical features ('seller_state')
+categorical_features = df_filtered.dtypes[df_filtered.dtypes == 'object'].index.to_list()
+
+one_hot_enc = OneHotEncoder(handle_unknown='ignore', sparse_output=False).set_output(transform="pandas")
+one_hot_enc.fit(df_filtered[categorical_features])
+encoded_seller_state = one_hot_enc.transform(df_filtered[categorical_features])
+
+# Enconded DataFrame
+df_encoded = pd.concat([df_filtered.iloc[:, :-1], encoded_seller_state, df_filtered.iloc[:, -1:]], axis=1)
+df_encoded.drop(columns=categorical_features, inplace=True)
+
+print(df_encoded.dtypes.to_string())

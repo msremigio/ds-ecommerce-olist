@@ -46,7 +46,7 @@ ds-ecommerce-olist/
 
 ### Requisitos
 
-- Verifique o arvuivo `pyproject.toml`.
+- Verifique o arquivo `pyproject.toml`.
 
 ### Scripts de Geração das Tabelas
 

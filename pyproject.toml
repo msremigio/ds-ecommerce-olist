@@ -9,3 +9,8 @@ dependencies = [
     "scikit-learn>=1.7.1",
     "sqlalchemy>=2.0.43",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "ipykernel>=3.13.2",
+]
